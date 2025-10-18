@@ -61,9 +61,27 @@
     }
     #prevVideoButton { top: 85%; left: 25%; transform: translate(-50%, -50%); }
     #nextVideoButton { top: 85%; left: 75%; transform: translate(-50%, -50%); }
+
+    /* Sound overlay button */
+    #enableSoundButton {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        padding: 20px 40px;
+        font-size: 18px;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        background: white;
+        color: black;
+        z-index: 4;
+        display: none; /* show only if sound needs enabling */
+    }
 </style>
 </head>
 <body>
+
 <video id="autoVideo" playsinline autoplay loop muted></video>
 
 <div class="loader-container" id="loaderContainer">
@@ -74,23 +92,38 @@
 <button id="prevVideoButton">Watch Previous Video</button>
 <button id="nextVideoButton">Watch Next Video</button>
 
+<button id="enableSoundButton">Tap to enable sound</button>
+
 <script>
     const video = document.getElementById('autoVideo');
     const loaderContainer = document.getElementById('loaderContainer');
     const prevButton = document.getElementById('prevVideoButton');
     const nextButton = document.getElementById('nextVideoButton');
+    const enableSoundButton = document.getElementById('enableSoundButton');
 
     // ---------------------------
     // Playlist of videos
     // ---------------------------
     const videoPlaylist = [
-        './videos/myvideo.mp4' // Add more videos here if needed
+        './videos/myvideo.mp4' // add more videos here
     ];
 
     let currentIndex = 0;
 
-    // Hidden view counters for each video
-    const viewCounts = videoPlaylist.map(() => 0);
+    // ---------------------------
+    // Helper: get persistent view count
+    // ---------------------------
+    function getViewCount(videoPath) {
+        const videoName = videoPath.split('/').pop();
+        return parseInt(localStorage.getItem(`viewCount_${videoName}`) || '0');
+    }
+
+    function incrementViewCount(videoPath) {
+        const videoName = videoPath.split('/').pop();
+        let count = getViewCount(videoPath) + 1;
+        localStorage.setItem(`viewCount_${videoName}`, count);
+        return count;
+    }
 
     // ---------------------------
     // Show/hide loader
@@ -105,9 +138,10 @@
     function loadVideo(index) {
         if(index < 0 || index >= videoPlaylist.length) return;
         currentIndex = index;
-        video.src = videoPlaylist[currentIndex];
+        const currentVideoPath = videoPlaylist[currentIndex];
+        video.src = currentVideoPath;
         video.load();
-        video.muted = true; // autoplay muted first
+        video.muted = true;
         showLoader(true);
 
         // Show/hide navigation buttons
@@ -122,8 +156,11 @@
         // Attempt autoplay
         video.play().then(() => {
             showLoader(false);
+            // Show sound button only if video is muted
+            if(video.muted) enableSoundButton.style.display = 'block';
         }).catch(err => {
             console.log('Autoplay blocked, waiting...', err);
+            enableSoundButton.style.display = 'block';
         });
     }
 
@@ -132,10 +169,19 @@
     // ---------------------------
     video.addEventListener('playing', () => {
         showLoader(false);
-        viewCounts[currentIndex]++;
-        const videoName = videoPlaylist[currentIndex].split('/').pop();
-        localStorage.setItem(`viewCount_${videoName}`, viewCounts[currentIndex]);
-        console.log(`Video ${currentIndex + 1} viewed ${viewCounts[currentIndex]} times (hidden)`);
+        enableSoundButton.style.display = 'none'; // hide overlay if visible
+        const currentVideoPath = videoPlaylist[currentIndex];
+        const newCount = incrementViewCount(currentVideoPath);
+        console.log(`Video ${currentIndex + 1} viewed ${newCount} times (persistent)`);
+    });
+
+    // ---------------------------
+    // Sound overlay button
+    // ---------------------------
+    enableSoundButton.addEventListener('click', () => {
+        video.muted = false;
+        video.play();
+        enableSoundButton.style.display = 'none';
     });
 
     // ---------------------------
@@ -153,6 +199,18 @@
     // Initialize first video
     // ---------------------------
     loadVideo(currentIndex);
+
+    // ---------------------------
+    // Optional: reset all view counts manually
+    // ---------------------------
+    function resetAllViewCounts() {
+        videoPlaylist.forEach(path => {
+            const videoName = path.split('/').pop();
+            localStorage.removeItem(`viewCount_${videoName}`);
+        });
+        console.log('All view counts reset.');
+    }
 </script>
+
 </body>
 </html>
