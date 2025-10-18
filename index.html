@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autoplay Video</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: black;
+      overflow: hidden;
+      height: 100%;
+    }
+    video {
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+    }
+    button {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 20px 40px;
+      font-size: 18px;
+      background: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <video id="autoVideo" playsinline autoplay loop></video>
+
+  <script>
+    const video = document.getElementById('autoVideo');
+    
+    // Replace this URL with your video file link (hosted anywhere, e.g., CDN, S3, Google Drive direct link, etc.)
+    video.src = './videos/myvideo.mp4';
+
+    video.load();
+    
+    // Try autoplay with sound
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        // If browser blocks autoplay with sound, show a button
+        const btn = document.createElement('button');
+        btn.textContent = "Tap to Play with Sound";
+        btn.onclick = () => {
+          video.muted = false;
+          video.play();
+          btn.remove();
+        };
+        document.body.appendChild(btn);
+      });
+    }
+  </script>
+</body>
+</html>
