@@ -19,44 +19,127 @@
     }
     button {
       position: fixed;
+      padding: 15px 30px;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    #tapPlayButton {
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      padding: 20px 40px;
-      font-size: 18px;
       background: white;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
+    }
+    #prevVideoButton {
+      top: 85%;
+      left: 25%;
+      transform: translate(-50%, -50%);
+      background: gray;
+      color: white;
+    }
+    #nextVideoButton {
+      top: 85%;
+      left: 75%;
+      transform: translate(-50%, -50%);
+      background: gray;
+      color: white;
     }
   </style>
 </head>
 <body>
   <video id="autoVideo" playsinline autoplay loop></video>
+  <button id="tapPlayButton">Tap to Play with Sound</button>
+  <button id="prevVideoButton">Watch Previous Video</button>
+  <button id="nextVideoButton">Watch Next Video</button>
 
   <script>
     const video = document.getElementById('autoVideo');
-    
-    // Replace this URL with your video file link (hosted anywhere, e.g., CDN, S3, Google Drive direct link, etc.)
-    video.src = './videos/myvideo.mp4';
+    const tapPlayButton = document.getElementById('tapPlayButton');
+    const prevButton = document.getElementById('prevVideoButton');
+    const nextButton = document.getElementById('nextVideoButton');
 
-    video.load();
-    
-    // Try autoplay with sound
-    const playPromise = video.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(() => {
-        // If browser blocks autoplay with sound, show a button
-        const btn = document.createElement('button');
-        btn.textContent = "Tap to Play with Sound";
-        btn.onclick = () => {
-          video.muted = false;
-          video.play();
-          btn.remove();
-        };
-        document.body.appendChild(btn);
-      });
+    // ---------------------------
+    // Playlist of videos
+    // ---------------------------
+    const videoPlaylist = [
+      './videos/myvideo.mp4',
+      './videos/myvideo2.mp4',
+      './videos/myvideo3.mp4'
+    ];
+
+    let currentIndex = 0;
+
+    // Hidden counter for each video
+    const tapCounts = videoPlaylist.map(() => 0);
+
+    // ---------------------------
+    // Load video function
+    // ---------------------------
+    function loadVideo(index) {
+      if (index < 0 || index >= videoPlaylist.length) return;
+      currentIndex = index;
+      video.src = videoPlaylist[currentIndex];
+      video.load();
+      video.muted = true; // autoplay muted first
+      tryAutoplay();
+      tapPlayButton.style.display = 'inline-block'; // reset button for new video
     }
+
+    // ---------------------------
+    // Try autoplay muted
+    // ---------------------------
+    async function tryAutoplay() {
+      try {
+        await video.play();
+      } catch (err) {
+        // If autoplay with sound blocked, button is already visible
+      }
+    }
+
+    // ---------------------------
+    // Tap to play with sound
+    // ---------------------------
+    tapPlayButton.addEventListener('click', async () => {
+      tapCounts[currentIndex]++; // increment hidden counter
+      video.muted = false;
+      try {
+        await video.play();
+        tapPlayButton.style.display = 'none';
+      } catch (err) {
+        tapPlayButton.style.display = 'inline-block';
+      }
+    });
+
+    // ---------------------------
+    // Next video button
+    // ---------------------------
+    nextButton.addEventListener('click', () => {
+      if (currentIndex < videoPlaylist.length - 1) {
+        loadVideo(currentIndex + 1);
+      } else {
+        alert('No more videos to watch right now, come back later.');
+      }
+    });
+
+    // ---------------------------
+    // Previous video button
+    // ---------------------------
+    prevButton.addEventListener('click', () => {
+      if (currentIndex > 0) {
+        loadVideo(currentIndex - 1);
+      } else {
+        alert('This is the first video.');
+      }
+    });
+
+    // ---------------------------
+    // Initialize
+    // ---------------------------
+    loadVideo(currentIndex);
+
+    // Optional: hidden console log to check counts per video
+    // setInterval(() => console.log('Hidden Tap Counts:', tapCounts), 5000);
   </script>
 </body>
 </html>
