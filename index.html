@@ -1,61 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Autoplay Video</title>
-  <style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Autoplay Video</title>
+<style>
     html, body {
-      margin: 0;
-      padding: 0;
-      background-color: black;
-      overflow: hidden;
-      height: 100%;
+        margin: 0;
+        padding: 0;
+        background-color: black;
+        overflow: hidden;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        color: white;
+        font-family: sans-serif;
     }
     video {
-      width: 100vw;
-      height: 100vh;
-      object-fit: cover;
+        width: 100vw;
+        height: 100vh;
+        object-fit: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1;
     }
-    button {
-      position: fixed;
-      padding: 15px 30px;
-      font-size: 16px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
+    .loader-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        z-index: 2;
     }
-    #tapPlayButton {
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: white;
+    .loader {
+        border: 8px solid #f3f3f3;
+        border-top: 8px solid #3498db;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 10px auto;
     }
-    #prevVideoButton {
-      top: 85%;
-      left: 25%;
-      transform: translate(-50%, -50%);
-      background: gray;
-      color: white;
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
-    #nextVideoButton {
-      top: 85%;
-      left: 75%;
-      transform: translate(-50%, -50%);
-      background: gray;
-      color: white;
+    #prevVideoButton, #nextVideoButton {
+        position: fixed;
+        padding: 15px 30px;
+        font-size: 16px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        background: gray;
+        color: white;
+        z-index: 3;
     }
-  </style>
+    #prevVideoButton { top: 85%; left: 25%; transform: translate(-50%, -50%); }
+    #nextVideoButton { top: 85%; left: 75%; transform: translate(-50%, -50%); }
+</style>
 </head>
 <body>
-  <video id="autoVideo" playsinline autoplay loop></video>
-  <button id="tapPlayButton">Tap to Play with Sound</button>
-  <button id="prevVideoButton">Watch Previous Video</button>
-  <button id="nextVideoButton">Watch Next Video</button>
+<video id="autoVideo" playsinline autoplay loop muted></video>
 
-  <script>
+<div class="loader-container" id="loaderContainer">
+    <div class="loader"></div>
+    <div>Loading video...</div>
+</div>
+
+<button id="prevVideoButton">Watch Previous Video</button>
+<button id="nextVideoButton">Watch Next Video</button>
+
+<script>
     const video = document.getElementById('autoVideo');
-    const tapPlayButton = document.getElementById('tapPlayButton');
+    const loaderContainer = document.getElementById('loaderContainer');
     const prevButton = document.getElementById('prevVideoButton');
     const nextButton = document.getElementById('nextVideoButton');
 
@@ -63,83 +84,80 @@
     // Playlist of videos
     // ---------------------------
     const videoPlaylist = [
-      './videos/myvideo.mp4',
-      './videos/myvideo2.mp4',
-      './videos/myvideo3.mp4'
+        './videos/myvideo.mp4',      // video 1
+        './videos/myvideo2.mp4',     // video 2
+        './videos/myvideo3.mp4'      // video 3
     ];
 
     let currentIndex = 0;
 
-    // Hidden counter for each video
-    const tapCounts = videoPlaylist.map(() => 0);
+    // Hidden view counters for each video
+    const viewCounts = videoPlaylist.map(() => 0);
+
+    // ---------------------------
+    // Show/hide loader
+    // ---------------------------
+    function showLoader(show) {
+        loaderContainer.style.display = show ? 'block' : 'none';
+    }
 
     // ---------------------------
     // Load video function
     // ---------------------------
     function loadVideo(index) {
-      if (index < 0 || index >= videoPlaylist.length) return;
-      currentIndex = index;
-      video.src = videoPlaylist[currentIndex];
-      video.load();
-      video.muted = true; // autoplay muted first
-      tryAutoplay();
-      tapPlayButton.style.display = 'inline-block'; // reset button for new video
+        if(index < 0 || index >= videoPlaylist.length) return;
+        currentIndex = index;
+        video.src = videoPlaylist[currentIndex];
+        video.load();
+        video.muted = true; // autoplay muted first
+        showLoader(true);
+
+        // Show/hide navigation buttons
+        if(videoPlaylist.length === 1) {
+            prevButton.style.display = 'none';
+            nextButton.style.display = 'none';
+        } else {
+            prevButton.style.display = currentIndex === 0 ? 'none' : 'inline-block';
+            nextButton.style.display = currentIndex === videoPlaylist.length - 1 ? 'none' : 'inline-block';
+        }
+
+        // Attempt autoplay
+        video.play().then(() => {
+            showLoader(false);
+        }).catch(err => {
+            console.log('Autoplay blocked, waiting...', err);
+        });
     }
 
     // ---------------------------
-    // Try autoplay muted
+    // Increment view counter when video starts playing
     // ---------------------------
-    async function tryAutoplay() {
-      try {
-        await video.play();
-      } catch (err) {
-        // If autoplay with sound blocked, button is already visible
-      }
-    }
+    video.addEventListener('playing', () => {
+        showLoader(false);
+        // Increment hidden counter
+        viewCounts[currentIndex]++;
+        // Optional: persist in localStorage
+        const videoName = videoPlaylist[currentIndex].split('/').pop();
+        localStorage.setItem(`viewCount_${videoName}`, viewCounts[currentIndex]);
 
-    // ---------------------------
-    // Tap to play with sound
-    // ---------------------------
-    tapPlayButton.addEventListener('click', async () => {
-      tapCounts[currentIndex]++; // increment hidden counter
-      video.muted = false;
-      try {
-        await video.play();
-        tapPlayButton.style.display = 'none';
-      } catch (err) {
-        tapPlayButton.style.display = 'inline-block';
-      }
+        console.log(`Video ${currentIndex + 1} has been viewed ${viewCounts[currentIndex]} times (hidden)`);
     });
 
     // ---------------------------
-    // Next video button
+    // Navigation buttons
     // ---------------------------
     nextButton.addEventListener('click', () => {
-      if (currentIndex < videoPlaylist.length - 1) {
-        loadVideo(currentIndex + 1);
-      } else {
-        alert('No more videos to watch right now, come back later.');
-      }
+        if(currentIndex < videoPlaylist.length - 1) loadVideo(currentIndex + 1);
     });
 
-    // ---------------------------
-    // Previous video button
-    // ---------------------------
     prevButton.addEventListener('click', () => {
-      if (currentIndex > 0) {
-        loadVideo(currentIndex - 1);
-      } else {
-        alert('This is the first video.');
-      }
+        if(currentIndex > 0) loadVideo(currentIndex - 1);
     });
 
     // ---------------------------
-    // Initialize
+    // Initialize first video
     // ---------------------------
     loadVideo(currentIndex);
-
-    // Optional: hidden console log to check counts per video
-    // setInterval(() => console.log('Hidden Tap Counts:', tapCounts), 5000);
-  </script>
+</script>
 </body>
 </html>
