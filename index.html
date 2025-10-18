@@ -84,9 +84,7 @@
     // Playlist of videos
     // ---------------------------
     const videoPlaylist = [
-        './videos/myvideo.mp4',      // video 1
-        './videos/myvideo2.mp4',     // video 2
-        './videos/myvideo3.mp4'      // video 3
+        './videos/myvideo.mp4' // Add more videos here if needed
     ];
 
     let currentIndex = 0;
@@ -134,13 +132,10 @@
     // ---------------------------
     video.addEventListener('playing', () => {
         showLoader(false);
-        // Increment hidden counter
         viewCounts[currentIndex]++;
-        // Optional: persist in localStorage
         const videoName = videoPlaylist[currentIndex].split('/').pop();
         localStorage.setItem(`viewCount_${videoName}`, viewCounts[currentIndex]);
-
-        console.log(`Video ${currentIndex + 1} has been viewed ${viewCounts[currentIndex]} times (hidden)`);
+        console.log(`Video ${currentIndex + 1} viewed ${viewCounts[currentIndex]} times (hidden)`);
     });
 
     // ---------------------------
