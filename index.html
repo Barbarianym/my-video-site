@@ -1,220 +1,114 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Responsive Autoplay Video</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Autoplay Video</title>
 <style>
-  :root{
-    --bg: #000;
-    --btn-bg: rgba(0,0,0,0.55);
-    --btn-bg-hover: rgba(0,0,0,0.8);
-    --control-size: 56px;            /* base touch size */
-    --control-font: 16px;
-    --loader-size: 64px;
-    --vh: 1vh; /* fallback; overridden by JS on mobile to be accurate */
-  }
+    html, body {
+        margin: 0;
+        padding: 0;
+        background-color: black;
+        overflow: hidden;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        color: white;
+        font-family: sans-serif;
+    }
+    video {
+        width: 100vw;
+        height: 100vh;
+        object-fit: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1;
+    }
+    .loader-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        z-index: 2;
+        transition: opacity 0.3s ease;
+    }
+    .loader {
+        border: 8px solid #f3f3f3;
+        border-top: 8px solid #3498db;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 10px auto;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    #prevVideoButton, #nextVideoButton {
+        position: fixed;
+        padding: 15px 30px;
+        font-size: 16px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        background: gray;
+        color: white;
+        z-index: 3;
+    }
+    #prevVideoButton { top: 85%; left: 25%; transform: translate(-50%, -50%); }
+    #nextVideoButton { top: 85%; left: 75%; transform: translate(-50%, -50%); }
 
-  html,body{
-    height: calc(var(--vh) * 100);
-    margin:0;
-    padding:0;
-    background:var(--bg);
-    color:#fff;
-    font-family:system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    -webkit-font-smoothing:antialiased;
-    -moz-osx-font-smoothing:grayscale;
-    overflow:hidden;
-  }
-
-  /* VIDEO covers full viewport */
-  #stage{
-    position:fixed;
-    top:0; left:0; right:0; bottom:0;
-    width:100%;
-    height:100%;
-    display:block;
-    background:#000;
-    z-index:0;
-  }
-  video {
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    display:block;
-    background:#000;
-  }
-
-  /* Loader centered */
-  .loader-container{
-    position:fixed;
-    left:50%;
-    top:50%;
-    transform:translate(-50%,-50%);
-    z-index:30;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:10px;
-    padding:12px 18px;
-    border-radius:12px;
-    background:rgba(0,0,0,0.45);
-    backdrop-filter: blur(4px);
-    transition:opacity .2s ease;
-  }
-  .loader {
-    width:var(--loader-size);
-    height:var(--loader-size);
-    border-radius:50%;
-    border:7px solid rgba(255,255,255,0.12);
-    border-top-color:#4ea0ff;
-    animation: spin 1s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg) } }
-  #loaderText { font-size:14px; text-align:center; }
-
-  /* Controls wrapper overlays video; layout changes with orientation/width */
-  .controls {
-    position:fixed;
-    z-index:40;
-    left:0; right:0; bottom:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    pointer-events:none; /* children will enable pointer-events */
-  }
-
-  /* Bottom row (portrait / desktop) */
-  .controls-row {
-    display:flex;
-    gap:18px;
-    align-items:center;
-    pointer-events:auto;
-    margin-bottom: env(safe-area-inset-bottom, 12px);
-  }
-
-  .control-btn {
-    min-width: var(--control-size);
-    min-height: var(--control-size);
-    padding:10px;
-    border-radius:10px;
-    background:var(--btn-bg);
-    color:#fff;
-    border:0;
-    font-size:var(--control-font);
-    cursor:pointer;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    transition: background .12s;
-    user-select:none;
-    touch-action: manipulation;
-  }
-  .control-btn:active { background:var(--btn-bg-hover); }
-
-  /* Sound toggle circle top-left (safe area aware) */
-  #soundToggle {
-    position:fixed;
-    left: calc(env(safe-area-inset-left, 10px) + 10px);
-    top: calc(env(safe-area-inset-top, 10px) + 10px);
-    z-index:50;
-    width:48px;
-    height:48px;
-    border-radius:50%;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:20px;
-    background:rgba(0,0,0,0.45);
-    color:#fff;
-    cursor:pointer;
-    pointer-events:auto;
-  }
-
-  /* Desktop/Large screens: keep controls near bottom center similar to your original working layout */
-  @media (min-width: 769px) {
-    .controls { bottom: 6%; }
-    .controls-row { gap: 28px; }
-    .control-btn { font-size:16px; min-width:64px; min-height:48px; padding:12px 22px; }
-  }
-
-  /* Mobile portrait: controls bottom row, touch-friendly */
-  @media (max-width: 768px) and (orientation: portrait) {
-    .controls { bottom: calc(env(safe-area-inset-bottom, 8px) + 10px); }
-    .controls-row { gap: 14px; padding: 4px; }
-    .control-btn { min-width:52px; min-height:48px; font-size:14px; }
-    #loaderText { font-size:13px; }
-    #soundToggle { width:46px; height:46px; font-size:20px; left: calc(env(safe-area-inset-left, 8px) + 8px); top: calc(env(safe-area-inset-top, 8px) + 8px); }
-  }
-
-  /* Mobile landscape: put prev/next vertically on left & right center for easier thumb reach */
-  @media (max-width: 1024px) and (orientation: landscape) {
-    .controls { left:0; right:0; bottom:auto; top:0; height:100%; display:flex; align-items:center; justify-content:center; pointer-events:none; }
-    .controls-row { pointer-events:auto; gap:0; background:transparent; }
-    /* we'll position prev/next absolutely for landscape */
-    #prevVideoButton { position:fixed; left: calc(env(safe-area-inset-left, 8px) + 8px); top:50%; transform:translateY(-50%); }
-    #nextVideoButton { position:fixed; right: calc(env(safe-area-inset-right, 8px) + 8px); top:50%; transform:translateY(-50%); }
-    .controls-row { display:none; } /* hide bottom row in landscape (we use side buttons) */
-    /* ensure sound toggle doesn't overlap */
-    #soundToggle { left: calc(env(safe-area-inset-left, 8px) + 8px); top: calc(env(safe-area-inset-top, 8px) + 8px); }
-  }
-
-  /* hide buttons if only one video (JS also hides) */
-  .hidden { display:none !important; }
-
-  /* small tweaks */
-  button { outline: none; }
+    #soundToggle {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        width: 40px;
+        height: 40px;
+        z-index: 4;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 24px;
+        color: white;
+        background: rgba(0,0,0,0.4);
+        border-radius: 50%;
+        user-select: none;
+    }
 </style>
 </head>
 <body>
 
-  <div id="stage">
-    <video id="autoVideo" playsinline autoplay muted></video>
-  </div>
+<video id="autoVideo" playsinline autoplay muted></video>
 
-  <div class="loader-container" id="loaderContainer" aria-hidden="true">
-    <div class="loader" aria-hidden="true"></div>
+<div class="loader-container" id="loaderContainer">
+    <div class="loader"></div>
     <div id="loaderText">Loading video...</div>
-  </div>
+</div>
 
-  <!-- top-left sound toggle -->
-  <div id="soundToggle" aria-hidden="false">🔇</div>
+<button id="prevVideoButton">Watch Previous Video</button>
+<button id="nextVideoButton">Watch Next Video</button>
 
-  <!-- controls row (bottom on portrait/desktop) -->
-  <div class="controls" role="group" aria-label="video controls">
-    <div class="controls-row" id="controlsRow">
-      <button id="prevVideoButton" class="control-btn">Previous</button>
-      <button id="nextVideoButton" class="control-btn">Next</button>
-    </div>
-  </div>
+<div id="soundToggle">🔇</div>
 
 <script>
-/* ====== Small VH fix for mobile address bar ======
-   sets --vh to 1% of the actual innerHeight, then CSS uses calc(var(--vh)*100)
-   helps iOS/Android address bar shrink/expand issues
-*/
-function setVh(){
-  document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
-}
-setVh();
-window.addEventListener('resize', setVh);
-window.addEventListener('orientationchange', () => {
-  setTimeout(setVh, 200); // slight delay for orientation to settle
-});
-
-/* ====== Playback + UI logic (keeps your features) ====== */
 const video = document.getElementById('autoVideo');
 const loaderContainer = document.getElementById('loaderContainer');
 const loaderText = document.getElementById('loaderText');
+const prevButton = document.getElementById('prevVideoButton');
+const nextButton = document.getElementById('nextVideoButton');
 const soundToggle = document.getElementById('soundToggle');
-const prevBtn = document.getElementById('prevVideoButton');
-const nextBtn = document.getElementById('nextVideoButton');
-const controlsRow = document.getElementById('controlsRow');
 
 const videoPlaylist = [
-  './videos/myvideo.mp4',
-  './videos/myvideo2.mp4'
+    './videos/myvideo.mp4',
+    './videos/myvideo2.mp4',
+    './videos/myvideo3.mp4',
+    './videos/myvideo4.mp4'
 ];
 
 let currentIndex = 0;
@@ -223,109 +117,108 @@ let isBuffering = false;
 let lastTime = 0;
 let movingCheckInterval = null;
 
-function showLoader(show, text = 'Loading video...'){
-  loaderText.textContent = text;
-  loaderContainer.style.display = show ? 'flex' : 'none';
-  loaderContainer.style.opacity = show ? '1' : '0';
+function getViewCount(videoPath) {
+    const videoName = videoPath.split('/').pop();
+    return parseInt(localStorage.getItem(`viewCount_${videoName}`) || '0');
 }
 
-function getViewCount(videoPath){
-  const name = videoPath.split('/').pop();
-  return parseInt(localStorage.getItem(`viewCount_${name}`) || '0', 10);
-}
-function incView(videoPath){
-  const name = videoPath.split('/').pop();
-  const v = getViewCount(videoPath) + 1;
-  localStorage.setItem(`viewCount_${name}`, v);
-  return v;
+function incrementViewCount(videoPath) {
+    const videoName = videoPath.split('/').pop();
+    let count = getViewCount(videoPath) + 1;
+    localStorage.setItem(`viewCount_${videoName}`, count);
+    return count;
 }
 
-function updateNavVisibility(){
-  if (videoPlaylist.length <= 1){
-    prevBtn.classList.add('hidden');
-    nextBtn.classList.add('hidden');
-  } else {
-    prevBtn.classList.toggle('hidden', currentIndex === 0);
-    nextBtn.classList.toggle('hidden', currentIndex === videoPlaylist.length - 1);
-  }
-  // also hide controlsRow in landscape small screens handled by CSS
+function showLoader(show, text = 'Loading video...') {
+    loaderText.textContent = text;
+    loaderContainer.style.display = show ? 'block' : 'none';
+    loaderContainer.style.opacity = show ? '1' : '0';
 }
 
-function loadVideo(index){
-  if (index < 0 || index >= videoPlaylist.length) return;
-  currentIndex = index;
-  const src = videoPlaylist[currentIndex];
-  video.src = src;
-  video.load();
-  video.muted = true;
-  soundToggle.textContent = '🔇';
-  showLoader(true, 'Loading video...');
-  hasStartedMoving = false;
-  isBuffering = false;
-  lastTime = 0;
+function loadVideo(index) {
+    if (index < 0 || index >= videoPlaylist.length) return;
+    currentIndex = index;
+    const currentVideoPath = videoPlaylist[currentIndex];
+    video.src = currentVideoPath;
+    video.load();
+    video.muted = true;
+    soundToggle.textContent = '🔇';
+    showLoader(true, 'Loading video...');
+    hasStartedMoving = false;
+    isBuffering = false;
+    lastTime = 0;
 
-  updateNavVisibility();
-
-  video.play().catch(e => {
-    // autoplay might be blocked on some browsers — loader stays until interaction
-    console.log('play blocked:', e && e.message ? e.message : e);
-  });
-
-  if (movingCheckInterval) clearInterval(movingCheckInterval);
-  movingCheckInterval = setInterval(() => {
-    if (!video.paused && video.readyState > 2) {
-      if (video.currentTime > lastTime + 0.05) {
-        if (!hasStartedMoving) {
-          hasStartedMoving = true;
-          showLoader(false);
-          const count = incView(src);
-          console.log(`Video ${currentIndex + 1} viewed ${count} times`);
-        }
-        if (isBuffering) {
-          isBuffering = false;
-          showLoader(false);
-        }
-        lastTime = video.currentTime;
-      }
+    if (videoPlaylist.length === 1) {
+        prevButton.style.display = 'none';
+        nextButton.style.display = 'none';
+    } else {
+        prevButton.style.display = currentIndex === 0 ? 'none' : 'inline-block';
+        nextButton.style.display = currentIndex === videoPlaylist.length - 1 ? 'none' : 'inline-block';
     }
-  }, 200);
+
+    video.play().catch(err => console.log('Autoplay blocked:', err));
+
+    // stop any old interval
+    if (movingCheckInterval) clearInterval(movingCheckInterval);
+
+    // monitor if frame motion actually happens
+    movingCheckInterval = setInterval(() => {
+        if (!video.paused && video.readyState > 2) {
+            if (video.currentTime > lastTime + 0.05) {
+                // frame moving
+                if (!hasStartedMoving) {
+                    hasStartedMoving = true;
+                    showLoader(false);
+                    const newCount = incrementViewCount(currentVideoPath);
+                    console.log(`Video ${currentIndex + 1} viewed ${newCount} times`);
+                }
+                if (isBuffering) {
+                    showLoader(false);
+                    isBuffering = false;
+                }
+                lastTime = video.currentTime;
+            }
+        }
+    }, 200);
 }
 
-/* Buffering: show only if already started playing (mid-play) */
+// Show buffering only mid-play
 video.addEventListener('waiting', () => {
-  if (hasStartedMoving) {
-    isBuffering = true;
-    showLoader(true, 'Buffering...');
-  }
+    if (hasStartedMoving) {
+        isBuffering = true;
+        showLoader(true, 'Buffering...');
+    }
 });
 
-/* When video ends -> next (wrap) */
+// Hide loader when resumed & frame movement restarts is handled by interval
+
 video.addEventListener('ended', () => {
-  loadVideo((currentIndex + 1) % videoPlaylist.length);
+    let nextIndex = currentIndex + 1;
+    if (nextIndex >= videoPlaylist.length) nextIndex = 0;
+    loadVideo(nextIndex);
 });
 
-/* Sound toggle */
 soundToggle.addEventListener('click', () => {
-  video.muted = !video.muted;
-  soundToggle.textContent = video.muted ? '🔇' : '🔊';
-  if (!video.muted) video.play().catch(()=>{});
+    video.muted = !video.muted;
+    soundToggle.textContent = video.muted ? '🔇' : '🔊';
+    if (!video.muted) video.play().catch(() => {});
 });
 
-/* Navigation buttons (loop-aware) */
-nextBtn.addEventListener('click', () => {
-  loadVideo((currentIndex + 1) % videoPlaylist.length);
-});
-prevBtn.addEventListener('click', () => {
-  loadVideo((currentIndex - 1 + videoPlaylist.length) % videoPlaylist.length);
+nextButton.addEventListener('click', () => {
+    let nextIndex = currentIndex + 1;
+    if (nextIndex >= videoPlaylist.length) nextIndex = 0;
+    loadVideo(nextIndex);
 });
 
-/* Initialize */
-loadVideo(0);
-
-/* cleanup if leaving */
-window.addEventListener('beforeunload', () => {
-  if (movingCheckInterval) clearInterval(movingCheckInterval);
+prevButton.addEventListener('click', () => {
+    let prevIndex = currentIndex - 1;
+    if (prevIndex < 0) prevIndex = videoPlaylist.length - 1;
+    loadVideo(prevIndex);
 });
+
+loadVideo(currentIndex);
 </script>
+
 </body>
 </html>
+
