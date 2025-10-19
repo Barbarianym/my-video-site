@@ -84,7 +84,7 @@
 </head>
 <body>
 
-<video id="autoVideo" playsinline autoplay loop muted></video>
+<video id="autoVideo" playsinline autoplay muted></video>
 
 <div class="loader-container" id="loaderContainer">
     <div class="loader"></div>
@@ -104,11 +104,11 @@
     const soundToggle = document.getElementById('soundToggle');
 
     // ---------------------------
-    // ✅ Playlist of videos (fixed commas)
+    // ✅ Playlist of videos
     // ---------------------------
     const videoPlaylist = [
         './videos/myvideo.mp4',
-        './videos/myvideo2.mp4' // add more videos here
+        './videos/myvideo2.mp4'
     ];
 
     let currentIndex = 0;
@@ -175,6 +175,17 @@
     });
 
     // ---------------------------
+    // 🔁 Autoplay next video when current ends
+    // ---------------------------
+    video.addEventListener('ended', () => {
+        let nextIndex = currentIndex + 1;
+        if (nextIndex >= videoPlaylist.length) {
+            nextIndex = 0; // loop back to first video
+        }
+        loadVideo(nextIndex);
+    });
+
+    // ---------------------------
     // Sound toggle icon
     // ---------------------------
     soundToggle.addEventListener('click', () => {
@@ -189,11 +200,15 @@
     // Navigation buttons
     // ---------------------------
     nextButton.addEventListener('click', () => {
-        if (currentIndex < videoPlaylist.length - 1) loadVideo(currentIndex + 1);
+        let nextIndex = currentIndex + 1;
+        if (nextIndex >= videoPlaylist.length) nextIndex = 0; // loop to first
+        loadVideo(nextIndex);
     });
 
     prevButton.addEventListener('click', () => {
-        if (currentIndex > 0) loadVideo(currentIndex - 1);
+        let prevIndex = currentIndex - 1;
+        if (prevIndex < 0) prevIndex = videoPlaylist.length - 1; // loop to last
+        loadVideo(prevIndex);
     });
 
     // ---------------------------
@@ -202,7 +217,7 @@
     loadVideo(currentIndex);
 
     // ---------------------------
-    // Optional: reset all view counts manually (you can run this in console)
+    // Optional: reset all view counts manually (run in console)
     // ---------------------------
     function resetAllViewCounts() {
         videoPlaylist.forEach(path => {
