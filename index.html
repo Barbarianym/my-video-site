@@ -2,31 +2,39 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Autoplay Video</title>
 <style>
+    :root {
+        --button-bg: rgba(80, 80, 80, 0.7);
+        --button-hover-bg: rgba(120, 120, 120, 0.9);
+        --loader-size: 60px;
+    }
+
     html, body {
         margin: 0;
         padding: 0;
+        height: 100%;
         background-color: black;
         overflow: hidden;
-        height: 100%;
+        font-family: system-ui, sans-serif;
+        color: white;
         display: flex;
         justify-content: center;
         align-items: center;
-        flex-direction: column;
-        color: white;
-        font-family: sans-serif;
     }
+
     video {
-        width: 100vw;
-        height: 100vh;
+        width: 100%;
+        height: 100%;
         object-fit: cover;
         position: absolute;
         top: 0;
         left: 0;
         z-index: 1;
+        background-color: black;
     }
+
     .loader-container {
         position: absolute;
         top: 50%;
@@ -35,51 +43,100 @@
         text-align: center;
         z-index: 2;
         transition: opacity 0.3s ease;
+        padding: 20px;
+        border-radius: 12px;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(4px);
     }
+
     .loader {
-        border: 8px solid #f3f3f3;
-        border-top: 8px solid #3498db;
+        border: 6px solid #f3f3f3;
+        border-top: 6px solid #3498db;
         border-radius: 50%;
-        width: 60px;
-        height: 60px;
+        width: var(--loader-size);
+        height: var(--loader-size);
         animation: spin 1s linear infinite;
         margin: 0 auto 10px auto;
     }
+
     @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
     }
+
     #prevVideoButton, #nextVideoButton {
         position: fixed;
-        padding: 15px 30px;
-        font-size: 16px;
+        padding: 12px 22px;
+        font-size: clamp(12px, 3vw, 18px);
         border: none;
         border-radius: 10px;
         cursor: pointer;
-        background: gray;
+        background: var(--button-bg);
         color: white;
         z-index: 3;
+        transition: background 0.2s ease;
     }
-    #prevVideoButton { top: 85%; left: 25%; transform: translate(-50%, -50%); }
-    #nextVideoButton { top: 85%; left: 75%; transform: translate(-50%, -50%); }
+
+    #prevVideoButton:hover, #nextVideoButton:hover {
+        background: var(--button-hover-bg);
+    }
+
+    #prevVideoButton {
+        bottom: 10%;
+        left: 10%;
+    }
+
+    #nextVideoButton {
+        bottom: 10%;
+        right: 10%;
+    }
 
     #soundToggle {
         position: absolute;
-        top: 15px;
-        left: 15px;
-        width: 40px;
-        height: 40px;
+        top: env(safe-area-inset-top, 10px);
+        left: env(safe-area-inset-left, 10px);
+        width: 42px;
+        height: 42px;
         z-index: 4;
         cursor: pointer;
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 24px;
+        font-size: 22px;
         color: white;
         background: rgba(0,0,0,0.4);
         border-radius: 50%;
         user-select: none;
+        touch-action: manipulation;
     }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+        .loader {
+            width: 50px;
+            height: 50px;
+            border-width: 5px;
+        }
+        .loader-container {
+            padding: 15px;
+        }
+        #prevVideoButton, #nextVideoButton {
+            padding: 10px 18px;
+            font-size: clamp(10px, 3vw, 16px);
+        }
+        #soundToggle {
+            width: 38px;
+            height: 38px;
+            font-size: 20px;
+        }
+    }
+
+    @media (orientation: portrait) {
+        #prevVideoButton, #nextVideoButton {
+            bottom: 8%;
+        }
+    }
+
 </style>
 </head>
 <body>
@@ -91,8 +148,8 @@
     <div id="loaderText">Loading video...</div>
 </div>
 
-<button id="prevVideoButton">Watch Previous Video</button>
-<button id="nextVideoButton">Watch Next Video</button>
+<button id="prevVideoButton">Previous</button>
+<button id="nextVideoButton">Next</button>
 
 <div id="soundToggle">🔇</div>
 
@@ -106,9 +163,7 @@ const soundToggle = document.getElementById('soundToggle');
 
 const videoPlaylist = [
     './videos/myvideo.mp4',
-    './videos/myvideo2.mp4',
-    './videos/myvideo3.mp4',
-    './videos/myvideo4.mp4'
+    './videos/myvideo2.mp4'
 ];
 
 let currentIndex = 0;
@@ -148,24 +203,15 @@ function loadVideo(index) {
     isBuffering = false;
     lastTime = 0;
 
-    if (videoPlaylist.length === 1) {
-        prevButton.style.display = 'none';
-        nextButton.style.display = 'none';
-    } else {
-        prevButton.style.display = currentIndex === 0 ? 'none' : 'inline-block';
-        nextButton.style.display = currentIndex === videoPlaylist.length - 1 ? 'none' : 'inline-block';
-    }
+    prevButton.style.display = currentIndex === 0 ? 'none' : 'inline-block';
+    nextButton.style.display = currentIndex === videoPlaylist.length - 1 ? 'none' : 'inline-block';
 
     video.play().catch(err => console.log('Autoplay blocked:', err));
 
-    // stop any old interval
     if (movingCheckInterval) clearInterval(movingCheckInterval);
-
-    // monitor if frame motion actually happens
     movingCheckInterval = setInterval(() => {
         if (!video.paused && video.readyState > 2) {
             if (video.currentTime > lastTime + 0.05) {
-                // frame moving
                 if (!hasStartedMoving) {
                     hasStartedMoving = true;
                     showLoader(false);
@@ -182,15 +228,12 @@ function loadVideo(index) {
     }, 200);
 }
 
-// Show buffering only mid-play
 video.addEventListener('waiting', () => {
     if (hasStartedMoving) {
         isBuffering = true;
         showLoader(true, 'Buffering...');
     }
 });
-
-// Hide loader when resumed & frame movement restarts is handled by interval
 
 video.addEventListener('ended', () => {
     let nextIndex = currentIndex + 1;
@@ -221,4 +264,3 @@ loadVideo(currentIndex);
 
 </body>
 </html>
-
