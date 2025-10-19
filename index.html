@@ -1,159 +1,174 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Autoplay Video</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Responsive Autoplay Video</title>
 <style>
-    :root {
-        --button-bg: rgba(80, 80, 80, 0.7);
-        --button-hover-bg: rgba(120, 120, 120, 0.9);
-        --loader-size: 60px;
-    }
+  :root{
+    --btn-bg: rgba(0,0,0,0.5);
+    --btn-bg-hover: rgba(0,0,0,0.65);
+    --btn-size: clamp(44px, 6vw, 60px); /* target minimum 44px for touch */
+    --btn-font: clamp(12px, 3vw, 16px);
+    --loader-size: clamp(40px, 10vw, 64px);
+  }
 
-    html, body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        background-color: black;
-        overflow: hidden;
-        font-family: system-ui, sans-serif;
-        color: white;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
+  html,body{
+    height:100%;
+    margin:0;
+    padding:0;
+    background:#000;
+    color:#fff;
+    font-family:system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
 
-    video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 1;
-        background-color: black;
-    }
+  /* Video fills viewport and crops as needed */
+  video{
+    position:fixed;
+    inset:0;               /* top:0; right:0; bottom:0; left:0; */
+    width:100vw;
+    height:100vh;
+    object-fit:cover;
+    background:#000;
+    z-index:1;
+  }
 
-    .loader-container {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        text-align: center;
-        z-index: 2;
-        transition: opacity 0.3s ease;
-        padding: 20px;
-        border-radius: 12px;
-        background: rgba(0, 0, 0, 0.4);
-        backdrop-filter: blur(4px);
-    }
+  /* Loader centered over video */
+  .loader-container{
+    position:fixed;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    z-index:3;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+    padding:12px 18px;
+    border-radius:12px;
+    background:rgba(0,0,0,0.45);
+    backdrop-filter: blur(4px);
+    transition:opacity .25s ease, transform .2s ease;
+  }
+  .loader{
+    width:var(--loader-size);
+    height:var(--loader-size);
+    border-radius:50%;
+    border:6px solid rgba(255,255,255,0.12);
+    border-top-color:#4ea0ff;
+    animation:spin 1s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
 
-    .loader {
-        border: 6px solid #f3f3f3;
-        border-top: 6px solid #3498db;
-        border-radius: 50%;
-        width: var(--loader-size);
-        height: var(--loader-size);
-        animation: spin 1s linear infinite;
-        margin: 0 auto 10px auto;
-    }
+  #loaderText{
+    font-size:clamp(12px,2.6vw,15px);
+    text-align:center;
+    color:#fff;
+  }
 
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
+  /* Sound toggle (small circular icon) - respects safe area */
+  #soundToggle{
+    position:fixed;
+    top:env(safe-area-inset-top,8px);
+    left:env(safe-area-inset-left,8px);
+    z-index:5;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:var(--btn-size);
+    height:var(--btn-size);
+    background:var(--btn-bg);
+    color:#fff;
+    border-radius:50%;
+    font-size:clamp(18px,4.5vw,22px);
+    cursor:pointer;
+    user-select:none;
+    touch-action:manipulation;
+  }
 
-    #prevVideoButton, #nextVideoButton {
-        position: fixed;
-        padding: 12px 22px;
-        font-size: clamp(12px, 3vw, 18px);
-        border: none;
-        border-radius: 10px;
-        cursor: pointer;
-        background: var(--button-bg);
-        color: white;
-        z-index: 3;
-        transition: background 0.2s ease;
-    }
+  /* Navigation buttons - base style */
+  .nav-btn{
+    position:fixed;
+    z-index:4;
+    background:var(--btn-bg);
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    padding:10px 14px;
+    font-size:var(--btn-font);
+    min-width:var(--btn-size);
+    min-height:var(--btn-size);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    cursor:pointer;
+    transition:background .12s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .nav-btn:active{ background:var(--btn-bg-hover); }
 
-    #prevVideoButton:hover, #nextVideoButton:hover {
-        background: var(--button-hover-bg);
-    }
+  /* Portrait layout (default) - buttons near bottom */
+  #prevVideoButton{
+    left:12%;
+    bottom:8%;
+    transform:translateX(-50%);
+  }
+  #nextVideoButton{
+    right:12%;
+    bottom:8%;
+    transform:translateX(50%);
+  }
 
-    #prevVideoButton {
-        bottom: 10%;
-        left: 10%;
+  /* Landscape layout - move buttons to left & right center (vertical) */
+  @media (orientation: landscape) {
+    #prevVideoButton{
+      left:4%;
+      top:50%;
+      bottom:auto;
+      transform:translateY(-50%);
     }
+    #nextVideoButton{
+      right:4%;
+      top:50%;
+      bottom:auto;
+      transform:translateY(-50%);
+    }
+    .loader-container{ padding:14px 20px; }
+  }
 
-    #nextVideoButton {
-        bottom: 10%;
-        right: 10%;
-    }
+  /* Smaller screens tweak */
+  @media (max-width:420px){
+    #loaderText{ font-size:13px; }
+    #soundToggle{ width:44px; height:44px; font-size:18px; }
+  }
 
-    #soundToggle {
-        position: absolute;
-        top: env(safe-area-inset-top, 10px);
-        left: env(safe-area-inset-left, 10px);
-        width: 42px;
-        height: 42px;
-        z-index: 4;
-        cursor: pointer;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 22px;
-        color: white;
-        background: rgba(0,0,0,0.4);
-        border-radius: 50%;
-        user-select: none;
-        touch-action: manipulation;
-    }
-
-    /* Mobile adjustments */
-    @media (max-width: 768px) {
-        .loader {
-            width: 50px;
-            height: 50px;
-            border-width: 5px;
-        }
-        .loader-container {
-            padding: 15px;
-        }
-        #prevVideoButton, #nextVideoButton {
-            padding: 10px 18px;
-            font-size: clamp(10px, 3vw, 16px);
-        }
-        #soundToggle {
-            width: 38px;
-            height: 38px;
-            font-size: 20px;
-        }
-    }
-
-    @media (orientation: portrait) {
-        #prevVideoButton, #nextVideoButton {
-            bottom: 8%;
-        }
-    }
+  /* Optional: hide nav buttons on single-video */
+  .hidden{ display:none !important; }
 
 </style>
 </head>
 <body>
 
-<video id="autoVideo" playsinline autoplay muted></video>
+  <video id="autoVideo" playsinline autoplay muted></video>
 
-<div class="loader-container" id="loaderContainer">
-    <div class="loader"></div>
+  <div class="loader-container" id="loaderContainer" aria-hidden="true">
+    <div class="loader" aria-hidden="true"></div>
     <div id="loaderText">Loading video...</div>
-</div>
+  </div>
 
-<button id="prevVideoButton">Previous</button>
-<button id="nextVideoButton">Next</button>
+  <button id="prevVideoButton" class="nav-btn">Previous</button>
+  <button id="nextVideoButton" class="nav-btn">Next</button>
 
-<div id="soundToggle">🔇</div>
+  <div id="soundToggle" aria-label="Toggle sound">🔇</div>
 
 <script>
+/* -------------------------
+   JS: playback + UI logic
+   (keeps same behavior you had)
+   ------------------------- */
 const video = document.getElementById('autoVideo');
 const loaderContainer = document.getElementById('loaderContainer');
 const loaderText = document.getElementById('loaderText');
@@ -162,8 +177,10 @@ const nextButton = document.getElementById('nextVideoButton');
 const soundToggle = document.getElementById('soundToggle');
 
 const videoPlaylist = [
-    './videos/myvideo.mp4',
-    './videos/myvideo2.mp4'
+  './videos/myvideo.mp4',
+  './videos/myvideo2.mp4',
+  './videos/myvideo3.mp4',
+  './videos/myvideo4.mp4'
 ];
 
 let currentIndex = 0;
@@ -172,95 +189,116 @@ let isBuffering = false;
 let lastTime = 0;
 let movingCheckInterval = null;
 
-function getViewCount(videoPath) {
-    const videoName = videoPath.split('/').pop();
-    return parseInt(localStorage.getItem(`viewCount_${videoName}`) || '0');
+function showLoader(show, text = 'Loading video...'){
+  loaderText.textContent = text;
+  loaderContainer.style.display = show ? 'flex' : 'none';
+  loaderContainer.style.opacity = show ? '1' : '0';
 }
 
-function incrementViewCount(videoPath) {
-    const videoName = videoPath.split('/').pop();
-    let count = getViewCount(videoPath) + 1;
-    localStorage.setItem(`viewCount_${videoName}`, count);
-    return count;
+function getViewCount(videoPath){
+  const videoName = videoPath.split('/').pop();
+  return parseInt(localStorage.getItem(`viewCount_${videoName}`) || '0', 10);
+}
+function incrementViewCount(videoPath){
+  const videoName = videoPath.split('/').pop();
+  const newCount = getViewCount(videoPath) + 1;
+  localStorage.setItem(`viewCount_${videoName}`, newCount);
+  return newCount;
 }
 
-function showLoader(show, text = 'Loading video...') {
-    loaderText.textContent = text;
-    loaderContainer.style.display = show ? 'block' : 'none';
-    loaderContainer.style.opacity = show ? '1' : '0';
+function updateNavVisibility(){
+  if (videoPlaylist.length <= 1){
+    prevButton.classList.add('hidden');
+    nextButton.classList.add('hidden');
+    return;
+  }
+  prevButton.classList.toggle('hidden', currentIndex === 0);
+  nextButton.classList.toggle('hidden', currentIndex === videoPlaylist.length - 1);
 }
 
-function loadVideo(index) {
-    if (index < 0 || index >= videoPlaylist.length) return;
-    currentIndex = index;
-    const currentVideoPath = videoPlaylist[currentIndex];
-    video.src = currentVideoPath;
-    video.load();
-    video.muted = true;
-    soundToggle.textContent = '🔇';
-    showLoader(true, 'Loading video...');
-    hasStartedMoving = false;
-    isBuffering = false;
-    lastTime = 0;
+function loadVideo(index){
+  if (index < 0 || index >= videoPlaylist.length) return;
+  currentIndex = index;
+  const path = videoPlaylist[currentIndex];
+  video.src = path;
+  video.load();
+  video.muted = true;
+  soundToggle.textContent = '🔇';
+  showLoader(true, 'Loading video...');
+  hasStartedMoving = false;
+  isBuffering = false;
+  lastTime = 0;
 
-    prevButton.style.display = currentIndex === 0 ? 'none' : 'inline-block';
-    nextButton.style.display = currentIndex === videoPlaylist.length - 1 ? 'none' : 'inline-block';
+  updateNavVisibility();
 
-    video.play().catch(err => console.log('Autoplay blocked:', err));
+  video.play().catch(e => {
+    // autoplay might be blocked; loader remains
+    console.log('Autoplay blocked:', e?.message || e);
+  });
 
-    if (movingCheckInterval) clearInterval(movingCheckInterval);
-    movingCheckInterval = setInterval(() => {
-        if (!video.paused && video.readyState > 2) {
-            if (video.currentTime > lastTime + 0.05) {
-                if (!hasStartedMoving) {
-                    hasStartedMoving = true;
-                    showLoader(false);
-                    const newCount = incrementViewCount(currentVideoPath);
-                    console.log(`Video ${currentIndex + 1} viewed ${newCount} times`);
-                }
-                if (isBuffering) {
-                    showLoader(false);
-                    isBuffering = false;
-                }
-                lastTime = video.currentTime;
-            }
+  if (movingCheckInterval) clearInterval(movingCheckInterval);
+  movingCheckInterval = setInterval(() => {
+    // check if frames are advancing
+    if (!video.paused && video.readyState > 2) {
+      if (video.currentTime > lastTime + 0.05) {
+        if (!hasStartedMoving) {
+          hasStartedMoving = true;
+          showLoader(false);
+          const count = incrementViewCount(path);
+          console.log(`Video ${currentIndex+1} viewed ${count} times`);
         }
-    }, 200);
+        if (isBuffering) {
+          isBuffering = false;
+          showLoader(false);
+        }
+        lastTime = video.currentTime;
+      }
+    }
+  }, 200);
 }
 
+// show buffering only when already started moving previously
 video.addEventListener('waiting', () => {
-    if (hasStartedMoving) {
-        isBuffering = true;
-        showLoader(true, 'Buffering...');
-    }
+  if (hasStartedMoving) {
+    isBuffering = true;
+    showLoader(true, 'Buffering...');
+  }
 });
 
+// end -> next video (loop if last)
 video.addEventListener('ended', () => {
-    let nextIndex = currentIndex + 1;
-    if (nextIndex >= videoPlaylist.length) nextIndex = 0;
-    loadVideo(nextIndex);
+  let nextIndex = currentIndex + 1;
+  if (nextIndex >= videoPlaylist.length) nextIndex = 0;
+  loadVideo(nextIndex);
 });
 
+// sound toggle
 soundToggle.addEventListener('click', () => {
-    video.muted = !video.muted;
-    soundToggle.textContent = video.muted ? '🔇' : '🔊';
-    if (!video.muted) video.play().catch(() => {});
+  video.muted = !video.muted;
+  soundToggle.textContent = video.muted ? '🔇' : '🔊';
+  if (!video.muted) video.play().catch(()=>{});
 });
 
+// nav buttons (also loop-aware if you prefer circular navigation)
 nextButton.addEventListener('click', () => {
-    let nextIndex = currentIndex + 1;
-    if (nextIndex >= videoPlaylist.length) nextIndex = 0;
-    loadVideo(nextIndex);
+  let nextIndex = currentIndex + 1;
+  if (nextIndex >= videoPlaylist.length) nextIndex = 0;
+  loadVideo(nextIndex);
 });
-
 prevButton.addEventListener('click', () => {
-    let prevIndex = currentIndex - 1;
-    if (prevIndex < 0) prevIndex = videoPlaylist.length - 1;
-    loadVideo(prevIndex);
+  let p = currentIndex - 1;
+  if (p < 0) p = videoPlaylist.length - 1;
+  loadVideo(p);
 });
 
+// init
 loadVideo(currentIndex);
-</script>
 
+// cleanup on unload
+window.addEventListener('beforeunload', () => {
+  if (movingCheckInterval) clearInterval(movingCheckInterval);
+});
+</script>
 </body>
 </html>
+
