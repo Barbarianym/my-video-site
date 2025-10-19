@@ -107,7 +107,8 @@
     // Playlist of videos
     // ---------------------------
     const videoPlaylist = [
-        './videos/myvideo.mp4' // add more videos here
+        './videos/myvideo.mp4'
+        './videos/myvide2.mp4'// add more videos here
     ];
 
     let currentIndex = 0;
@@ -188,5 +189,28 @@
         if(currentIndex < videoPlaylist.length - 1) loadVideo(currentIndex + 1);
     });
 
-    prevButton.add
+    prevButton.addEventListener('click', () => {
+        if(currentIndex > 0) loadVideo(currentIndex - 1);
+    });
+
+    // ---------------------------
+    // Initialize first video
+    // ---------------------------
+    loadVideo(currentIndex);
+
+    // ---------------------------
+    // Optional: reset all view counts manually
+    // ---------------------------
+    function resetAllViewCounts() {
+        videoPlaylist.forEach(path => {
+            const videoName = path.split('/').pop();
+            localStorage.removeItem(`viewCount_${videoName}`);
+        });
+        console.log('All view counts reset.');
+    }
+</script>
+
+</body>
+</html>
+
 
