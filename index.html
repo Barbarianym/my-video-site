@@ -34,6 +34,7 @@
         transform: translate(-50%, -50%);
         text-align: center;
         z-index: 2;
+        transition: opacity 0.3s ease;
     }
     .loader {
         border: 8px solid #f3f3f3;
@@ -87,7 +88,7 @@
 
 <div class="loader-container" id="loaderContainer">
     <div class="loader"></div>
-    <div>Loading video...</div>
+    <div id="loaderText">Loading video...</div>
 </div>
 
 <button id="prevVideoButton">Watch Previous Video</button>
@@ -98,6 +99,7 @@
 <script>
     const video = document.getElementById('autoVideo');
     const loaderContainer = document.getElementById('loaderContainer');
+    const loaderText = document.getElementById('loaderText');
     const prevButton = document.getElementById('prevVideoButton');
     const nextButton = document.getElementById('nextVideoButton');
     const soundToggle = document.getElementById('soundToggle');
@@ -108,7 +110,7 @@
     ];
 
     let currentIndex = 0;
-    let hasStartedMoving = false; // ✅ new flag
+    let hasStartedMoving = false;
 
     function getViewCount(videoPath) {
         const videoName = videoPath.split('/').pop();
@@ -122,8 +124,10 @@
         return count;
     }
 
-    function showLoader(show) {
+    function showLoader(show, text = 'Loading video...') {
+        loaderText.textContent = text;
         loaderContainer.style.display = show ? 'block' : 'none';
+        loaderContainer.style.opacity = show ? '1' : '0';
     }
 
     function loadVideo(index) {
@@ -134,7 +138,7 @@
         video.load();
         video.muted = true;
         soundToggle.textContent = '🔇';
-        showLoader(true);
+        showLoader(true, 'Loading video...');
         hasStartedMoving = false;
 
         if (videoPlaylist.length === 1) {
@@ -146,7 +150,7 @@
         }
 
         video.play().catch(err => {
-            console.log('Autoplay blocked, waiting for interaction:', err);
+            console.log('Autoplay blocked:', err);
         });
     }
 
@@ -156,7 +160,7 @@
         console.log(`Video ${currentIndex + 1} viewed ${newCount} times`);
     });
 
-    // ✅ Hide loader only after motion begins
+    // ✅ Hide loader only when motion starts
     video.addEventListener('timeupdate', () => {
         if (!hasStartedMoving && video.currentTime > 0.05) {
             showLoader(false);
@@ -164,18 +168,31 @@
         }
     });
 
+    // ✅ Show loader when buffering starts
+    video.addEventListener('waiting', () => {
+        showLoader(true, 'Buffering...');
+    });
+
+    // ✅ Hide loader when buffering ends
+    video.addEventListener('playing', () => {
+        showLoader(false);
+    });
+
+    // ✅ Looping through playlist
     video.addEventListener('ended', () => {
         let nextIndex = currentIndex + 1;
         if (nextIndex >= videoPlaylist.length) nextIndex = 0;
         loadVideo(nextIndex);
     });
 
+    // ✅ Sound toggle
     soundToggle.addEventListener('click', () => {
         video.muted = !video.muted;
         soundToggle.textContent = video.muted ? '🔇' : '🔊';
         if (!video.muted) video.play().catch(() => {});
     });
 
+    // ✅ Navigation
     nextButton.addEventListener('click', () => {
         let nextIndex = currentIndex + 1;
         if (nextIndex >= videoPlaylist.length) nextIndex = 0;
