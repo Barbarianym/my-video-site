@@ -1,64 +1,214 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Autoplay Video</title>
-  <style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Autoplay Video</title>
+<style>
     html, body {
-      margin: 0;
-      padding: 0;
-      background-color: black;
-      overflow: hidden;
-      height: 100%;
+        margin: 0;
+        padding: 0;
+        background-color: black;
+        overflow: hidden;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        color: white;
+        font-family: sans-serif;
     }
     video {
-      width: 100vw;
-      height: 100vh;
-      object-fit: cover;
+        width: 100vw;
+        height: 100vh;
+        object-fit: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1;
     }
-    button {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      padding: 20px 40px;
-      font-size: 18px;
-      background: white;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
+    .loader-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        z-index: 2;
     }
-  </style>
+    .loader {
+        border: 8px solid #f3f3f3;
+        border-top: 8px solid #3498db;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 10px auto;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    #prevVideoButton, #nextVideoButton {
+        position: fixed;
+        padding: 15px 30px;
+        font-size: 16px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        background: gray;
+        color: white;
+        z-index: 3;
+    }
+    #prevVideoButton { top: 85%; left: 25%; transform: translate(-50%, -50%); }
+    #nextVideoButton { top: 85%; left: 75%; transform: translate(-50%, -50%); }
+
+    /* Small sound toggle icon */
+    #soundToggle {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        width: 40px;
+        height: 40px;
+        z-index: 4;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 24px;
+        color: white;
+        background: rgba(0,0,0,0.4);
+        border-radius: 50%;
+        user-select: none;
+    }
+</style>
 </head>
 <body>
-  <video id="autoVideo" playsinline autoplay loop></video>
 
-  <script>
+<video id="autoVideo" playsinline autoplay loop muted></video>
+
+<div class="loader-container" id="loaderContainer">
+    <div class="loader"></div>
+    <div>Loading video...</div>
+</div>
+
+<button id="prevVideoButton">Watch Previous Video</button>
+<button id="nextVideoButton">Watch Next Video</button>
+
+<div id="soundToggle">🔇</div> <!-- mute icon initially -->
+
+<script>
     const video = document.getElementById('autoVideo');
-    
-    // Replace this URL with your video file link (hosted anywhere, e.g., CDN, S3, Google Drive direct link, etc.)
-    video.src = './videos/myvideo.mp4';
+    const loaderContainer = document.getElementById('loaderContainer');
+    const prevButton = document.getElementById('prevVideoButton');
+    const nextButton = document.getElementById('nextVideoButton');
+    const soundToggle = document.getElementById('soundToggle');
 
-    video.load();
-    
-    // Try autoplay with sound
-    const playPromise = video.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(() => {
-        // If browser blocks autoplay with sound, show a button
-        const btn = document.createElement('button');
-        btn.textContent = "Tap to Play with Sound";
-        btn.onclick = () => {
-          video.muted = false;
-          video.play();
-          btn.remove();
-        };
-        document.body.appendChild(btn);
-      });
+    // ---------------------------
+    // Playlist of videos
+    // ---------------------------
+    const videoPlaylist = [
+        './videos/myvideo.mp4'
+        './videos/myvideo2.mp4'// add more videos here
+    ];
+
+    let currentIndex = 0;
+
+    // ---------------------------
+    // Helper: get persistent view count
+    // ---------------------------
+    function getViewCount(videoPath) {
+        const videoName = videoPath.split('/').pop();
+        return parseInt(localStorage.getItem(`viewCount_${videoName}`) || '0');
     }
-  </script>
+
+    function incrementViewCount(videoPath) {
+        const videoName = videoPath.split('/').pop();
+        let count = getViewCount(videoPath) + 1;
+        localStorage.setItem(`viewCount_${videoName}`, count);
+        return count;
+    }
+
+    // ---------------------------
+    // Show/hide loader
+    // ---------------------------
+    function showLoader(show) {
+        loaderContainer.style.display = show ? 'block' : 'none';
+    }
+
+    // ---------------------------
+    // Load video function
+    // ---------------------------
+    function loadVideo(index) {
+        if(index < 0 || index >= videoPlaylist.length) return;
+        currentIndex = index;
+        const currentVideoPath = videoPlaylist[currentIndex];
+        video.src = currentVideoPath;
+        video.load();
+        video.muted = true;
+        soundToggle.textContent = '🔇'; // show muted icon initially
+        showLoader(true);
+
+        // Show/hide navigation buttons
+        if(videoPlaylist.length === 1) {
+            prevButton.style.display = 'none';
+            nextButton.style.display = 'none';
+        } else {
+            prevButton.style.display = currentIndex === 0 ? 'none' : 'inline-block';
+            nextButton.style.display = currentIndex === videoPlaylist.length - 1 ? 'none' : 'inline-block';
+        }
+
+        video.play().then(() => {
+            showLoader(false);
+        }).catch(err => {
+            console.log('Autoplay blocked, waiting...', err);
+        });
+    }
+
+    // ---------------------------
+    // Increment view counter when video starts playing
+    // ---------------------------
+    video.addEventListener('playing', () => {
+        showLoader(false);
+        const currentVideoPath = videoPlaylist[currentIndex];
+        const newCount = incrementViewCount(currentVideoPath);
+        console.log(`Video ${currentIndex + 1} viewed ${newCount} times (persistent)`);
+    });
+
+    // ---------------------------
+    // Sound toggle
+    // ---------------------------
+    soundToggle.addEventListener('click', () => {
+        video.muted = !video.muted;
+        soundToggle.textContent = video.muted ? '🔇' : '🔊';
+    });
+
+    // ---------------------------
+    // Navigation buttons
+    // ---------------------------
+    nextButton.addEventListener('click', () => {
+        if(currentIndex < videoPlaylist.length - 1) loadVideo(currentIndex + 1);
+    });
+
+    prevButton.addEventListener('click', () => {
+        if(currentIndex > 0) loadVideo(currentIndex - 1);
+    });
+
+    // ---------------------------
+    // Initialize first video
+    // ---------------------------
+    loadVideo(currentIndex);
+
+    // ---------------------------
+    // Optional: reset all view counts manually
+    // ---------------------------
+    function resetAllViewCounts() {
+        videoPlaylist.forEach(path => {
+            const videoName = path.split('/').pop();
+            localStorage.removeItem(`viewCount_${videoName}`);
+        });
+        console.log('All view counts reset.');
+    }
+</script>
+
 </body>
 </html>
-
-
