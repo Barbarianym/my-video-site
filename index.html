@@ -62,7 +62,6 @@
     #prevVideoButton { top: 85%; left: 25%; transform: translate(-50%, -50%); }
     #nextVideoButton { top: 85%; left: 75%; transform: translate(-50%, -50%); }
 
-    /* Small sound toggle icon */
     #soundToggle {
         position: absolute;
         top: 15px;
@@ -103,19 +102,14 @@
     const nextButton = document.getElementById('nextVideoButton');
     const soundToggle = document.getElementById('soundToggle');
 
-    // ---------------------------
-    // ✅ Playlist of videos
-    // ---------------------------
     const videoPlaylist = [
         './videos/myvideo.mp4',
         './videos/myvideo2.mp4'
     ];
 
     let currentIndex = 0;
+    let hasStartedMoving = false; // ✅ new flag
 
-    // ---------------------------
-    // Persistent view count (localStorage)
-    // ---------------------------
     function getViewCount(videoPath) {
         const videoName = videoPath.split('/').pop();
         return parseInt(localStorage.getItem(`viewCount_${videoName}`) || '0');
@@ -128,16 +122,10 @@
         return count;
     }
 
-    // ---------------------------
-    // Show/hide loader
-    // ---------------------------
     function showLoader(show) {
         loaderContainer.style.display = show ? 'block' : 'none';
     }
 
-    // ---------------------------
-    // Load and play a video
-    // ---------------------------
     function loadVideo(index) {
         if (index < 0 || index >= videoPlaylist.length) return;
         currentIndex = index;
@@ -147,8 +135,8 @@
         video.muted = true;
         soundToggle.textContent = '🔇';
         showLoader(true);
+        hasStartedMoving = false;
 
-        // Manage navigation buttons
         if (videoPlaylist.length === 1) {
             prevButton.style.display = 'none';
             nextButton.style.display = 'none';
@@ -157,68 +145,51 @@
             nextButton.style.display = currentIndex === videoPlaylist.length - 1 ? 'none' : 'inline-block';
         }
 
-        video.play().then(() => {
-            showLoader(false);
-        }).catch(err => {
+        video.play().catch(err => {
             console.log('Autoplay blocked, waiting for interaction:', err);
         });
     }
 
-    // ---------------------------
-    // Increment view count when video starts playing
-    // ---------------------------
     video.addEventListener('playing', () => {
-        showLoader(false);
         const currentVideoPath = videoPlaylist[currentIndex];
         const newCount = incrementViewCount(currentVideoPath);
-        console.log(`Video ${currentIndex + 1} viewed ${newCount} times (persistent)`);
+        console.log(`Video ${currentIndex + 1} viewed ${newCount} times`);
     });
 
-    // ---------------------------
-    // 🔁 Autoplay next video when current ends
-    // ---------------------------
+    // ✅ Hide loader only after motion begins
+    video.addEventListener('timeupdate', () => {
+        if (!hasStartedMoving && video.currentTime > 0.05) {
+            showLoader(false);
+            hasStartedMoving = true;
+        }
+    });
+
     video.addEventListener('ended', () => {
         let nextIndex = currentIndex + 1;
-        if (nextIndex >= videoPlaylist.length) {
-            nextIndex = 0; // loop back to first video
-        }
+        if (nextIndex >= videoPlaylist.length) nextIndex = 0;
         loadVideo(nextIndex);
     });
 
-    // ---------------------------
-    // Sound toggle icon
-    // ---------------------------
     soundToggle.addEventListener('click', () => {
         video.muted = !video.muted;
         soundToggle.textContent = video.muted ? '🔇' : '🔊';
-        if (!video.muted) {
-            video.play().catch(() => {}); // ensure playback resumes
-        }
+        if (!video.muted) video.play().catch(() => {});
     });
 
-    // ---------------------------
-    // Navigation buttons
-    // ---------------------------
     nextButton.addEventListener('click', () => {
         let nextIndex = currentIndex + 1;
-        if (nextIndex >= videoPlaylist.length) nextIndex = 0; // loop to first
+        if (nextIndex >= videoPlaylist.length) nextIndex = 0;
         loadVideo(nextIndex);
     });
 
     prevButton.addEventListener('click', () => {
         let prevIndex = currentIndex - 1;
-        if (prevIndex < 0) prevIndex = videoPlaylist.length - 1; // loop to last
+        if (prevIndex < 0) prevIndex = videoPlaylist.length - 1;
         loadVideo(prevIndex);
     });
 
-    // ---------------------------
-    // Initialize the first video
-    // ---------------------------
     loadVideo(currentIndex);
 
-    // ---------------------------
-    // Optional: reset all view counts manually (run in console)
-    // ---------------------------
     function resetAllViewCounts() {
         videoPlaylist.forEach(path => {
             const videoName = path.split('/').pop();
