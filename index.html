@@ -94,7 +94,7 @@
 <button id="prevVideoButton">Watch Previous Video</button>
 <button id="nextVideoButton">Watch Next Video</button>
 
-<div id="soundToggle">🔇</div> <!-- mute icon initially -->
+<div id="soundToggle">🔇</div>
 
 <script>
     const video = document.getElementById('autoVideo');
@@ -104,17 +104,17 @@
     const soundToggle = document.getElementById('soundToggle');
 
     // ---------------------------
-    // Playlist of videos
+    // ✅ Playlist of videos (fixed commas)
     // ---------------------------
     const videoPlaylist = [
-        './videos/myvideo.mp4'
-        './videos/myvideo2.mp4'// add more videos here
+        './videos/myvideo.mp4',
+        './videos/myvideo2.mp4' // add more videos here
     ];
 
     let currentIndex = 0;
 
     // ---------------------------
-    // Helper: get persistent view count
+    // Persistent view count (localStorage)
     // ---------------------------
     function getViewCount(videoPath) {
         const videoName = videoPath.split('/').pop();
@@ -136,20 +136,20 @@
     }
 
     // ---------------------------
-    // Load video function
+    // Load and play a video
     // ---------------------------
     function loadVideo(index) {
-        if(index < 0 || index >= videoPlaylist.length) return;
+        if (index < 0 || index >= videoPlaylist.length) return;
         currentIndex = index;
         const currentVideoPath = videoPlaylist[currentIndex];
         video.src = currentVideoPath;
         video.load();
         video.muted = true;
-        soundToggle.textContent = '🔇'; // show muted icon initially
+        soundToggle.textContent = '🔇';
         showLoader(true);
 
-        // Show/hide navigation buttons
-        if(videoPlaylist.length === 1) {
+        // Manage navigation buttons
+        if (videoPlaylist.length === 1) {
             prevButton.style.display = 'none';
             nextButton.style.display = 'none';
         } else {
@@ -160,12 +160,12 @@
         video.play().then(() => {
             showLoader(false);
         }).catch(err => {
-            console.log('Autoplay blocked, waiting...', err);
+            console.log('Autoplay blocked, waiting for interaction:', err);
         });
     }
 
     // ---------------------------
-    // Increment view counter when video starts playing
+    // Increment view count when video starts playing
     // ---------------------------
     video.addEventListener('playing', () => {
         showLoader(false);
@@ -175,31 +175,34 @@
     });
 
     // ---------------------------
-    // Sound toggle
+    // Sound toggle icon
     // ---------------------------
     soundToggle.addEventListener('click', () => {
         video.muted = !video.muted;
         soundToggle.textContent = video.muted ? '🔇' : '🔊';
+        if (!video.muted) {
+            video.play().catch(() => {}); // ensure playback resumes
+        }
     });
 
     // ---------------------------
     // Navigation buttons
     // ---------------------------
     nextButton.addEventListener('click', () => {
-        if(currentIndex < videoPlaylist.length - 1) loadVideo(currentIndex + 1);
+        if (currentIndex < videoPlaylist.length - 1) loadVideo(currentIndex + 1);
     });
 
     prevButton.addEventListener('click', () => {
-        if(currentIndex > 0) loadVideo(currentIndex - 1);
+        if (currentIndex > 0) loadVideo(currentIndex - 1);
     });
 
     // ---------------------------
-    // Initialize first video
+    // Initialize the first video
     // ---------------------------
     loadVideo(currentIndex);
 
     // ---------------------------
-    // Optional: reset all view counts manually
+    // Optional: reset all view counts manually (you can run this in console)
     // ---------------------------
     function resetAllViewCounts() {
         videoPlaylist.forEach(path => {
