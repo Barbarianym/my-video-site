@@ -111,6 +111,7 @@
 
     let currentIndex = 0;
     let hasStartedMoving = false;
+    let isBuffering = false;
 
     function getViewCount(videoPath) {
         const videoName = videoPath.split('/').pop();
@@ -140,6 +141,7 @@
         soundToggle.textContent = '🔇';
         showLoader(true, 'Loading video...');
         hasStartedMoving = false;
+        isBuffering = false;
 
         if (videoPlaylist.length === 1) {
             prevButton.style.display = 'none';
@@ -154,45 +156,52 @@
         });
     }
 
-    video.addEventListener('playing', () => {
-        const currentVideoPath = videoPlaylist[currentIndex];
-        const newCount = incrementViewCount(currentVideoPath);
-        console.log(`Video ${currentIndex + 1} viewed ${newCount} times`);
-    });
-
-    // ✅ Hide loader only when motion starts
+    // Count and hide loader when video actually starts moving
     video.addEventListener('timeupdate', () => {
         if (!hasStartedMoving && video.currentTime > 0.05) {
             showLoader(false);
             hasStartedMoving = true;
+            const currentVideoPath = videoPlaylist[currentIndex];
+            const newCount = incrementViewCount(currentVideoPath);
+            console.log(`Video ${currentIndex + 1} viewed ${newCount} times`);
+        }
+        if (isBuffering && video.currentTime > 0.05) {
+            showLoader(false);
+            isBuffering = false;
         }
     });
 
-    // ✅ Show loader when buffering starts
+    // Show loader when buffering (mid-play only)
     video.addEventListener('waiting', () => {
-        showLoader(true, 'Buffering...');
+        if (hasStartedMoving) {
+            isBuffering = true;
+            showLoader(true, 'Buffering...');
+        }
     });
 
-    // ✅ Hide loader when buffering ends
+    // Hide loader when playback resumes and motion continues
     video.addEventListener('playing', () => {
-        showLoader(false);
+        if (isBuffering) {
+            showLoader(false);
+            isBuffering = false;
+        }
     });
 
-    // ✅ Looping through playlist
+    // Autoplay next video when one ends (loop playlist)
     video.addEventListener('ended', () => {
         let nextIndex = currentIndex + 1;
         if (nextIndex >= videoPlaylist.length) nextIndex = 0;
         loadVideo(nextIndex);
     });
 
-    // ✅ Sound toggle
+    // Sound toggle
     soundToggle.addEventListener('click', () => {
         video.muted = !video.muted;
         soundToggle.textContent = video.muted ? '🔇' : '🔊';
         if (!video.muted) video.play().catch(() => {});
     });
 
-    // ✅ Navigation
+    // Navigation
     nextButton.addEventListener('click', () => {
         let nextIndex = currentIndex + 1;
         if (nextIndex >= videoPlaylist.length) nextIndex = 0;
